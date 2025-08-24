@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tiny_http = {version="0.11", features=["ssl-rustls"] }
+tiny_http = {version="0.12", features=["ssl-rustls"] }
 sha2 = "0.10"
-lettre = {version="0.10", default-features=false, features=["builder", "smtp-transport" ]}
-clap = { version = "3.2", features = ["derive"] }
+lettre = {version="0.11", default-features=false, features=["builder", "smtp-transport" ]}
+clap = { version = "4.5", features = ["derive"] }
