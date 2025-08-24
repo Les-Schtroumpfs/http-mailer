@@ -104,6 +104,13 @@ fn main() {
 
     // Listen for connections
     for mut request in server.incoming_requests() {
+        // Redirect root to github
+        if request.url() == "/" {
+            let location = Header::from_bytes(&b"Location"[..], &b"https://github.com/Les-Schtroumpfs/http-mailer"[..]).unwrap();
+            let _ = request.respond(Response::new_empty(StatusCode(301)).with_header(location));
+            continue;
+        }
+
         // Check path
         if request.url() != "/send-email" {
             let _ = request.respond(Response::new_empty(StatusCode(404)).with_data(Cursor::new("This is an http mailer server"), Some(29)));
