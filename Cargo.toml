@@ -1,11 +1,11 @@
 [package]
 name = "http-mailer"
 authors = ["Mubelotix <mubelotix@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [dependencies]
-tiny_http = {version="0.12", features=["ssl-rustls"] }
+tiny_http = "0.12"
 sha2 = "0.10"
 lettre = {version="0.11", default-features=false, features=["builder", "smtp-transport" ]}
 clap = { version = "4.5", features = ["derive"] }

@@ -18,14 +18,6 @@ struct Cli {
    /// Hashed api key (with sha256)
    #[clap(long, short='k', value_parser)]
    api_key: Vec<String>,
-
-   /// Path to ssl certicate
-   #[clap(short, long, value_parser)]
-   cert: Option<String>,
-
-   /// Path to ssl private key
-   #[clap(short, long, value_parser)]
-   privkey: Option<String>,
 }
 
 /// Handle a single HTTP request
@@ -107,21 +99,7 @@ fn main() {
     }
 
     // Boot server
-    let server = if let (Some(cert), Some(privkey)) = (cli.cert, cli.privkey) {
-        let cert = std::fs::read_to_string(cert).expect("Cannot read ssl certificate");
-        let privkey = std::fs::read_to_string(privkey).expect("Cannot read ssl private key");
-
-        Server::https(
-            cli.addr.clone(),
-            tiny_http::SslConfig {
-                certificate: cert.into_bytes(),
-                private_key: privkey.into_bytes(),
-            },
-        ).expect("Failed to launch server")
-    } else {
-        println!("WARNING: HTTPS is disabled");
-        Server::http(cli.addr.clone()).expect("Failed to launch server")
-    };
+    let server = Server::http(cli.addr.clone()).expect("Failed to launch server");
     println!("Listening on {}", cli.addr);
 
     // Listen for connections

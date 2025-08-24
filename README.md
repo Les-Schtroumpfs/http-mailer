@@ -6,7 +6,7 @@ Emails are sent through a local SMTP server at port 25 (tested with Postfix).
 ## CLI documentation
 
 ```bash
-http-mailer 0.1.0
+http-mailer 0.2.0
 Mubelotix <mubelotix@gmail.com>
 
 USAGE:
@@ -14,10 +14,8 @@ USAGE:
 
 OPTIONS:
     -a, --addr <ADDR>          Address to listen on [default: localhost:8000]
-    -c, --cert <CERT>          Path to ssl certicate
     -h, --help                 Print help information
     -k, --api-key <API_KEY>    Hashed api key (with sha256)
-    -p, --privkey <PRIVKEY>    Path to ssl private key
     -V, --version              Print version information
 ```
 
