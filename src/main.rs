@@ -15,13 +15,29 @@ struct Cli {
    #[clap(short, long, value_parser, default_value = "localhost:8000")]
    addr: String,
 
-   /// Hashed api key (with sha256)
-   #[clap(long, short='k', value_parser)]
-   api_key: Vec<String>,
+    /// Api keys in the form EMAIL=API_KEY where API_KEY is a sha256 hash
+    #[clap(short = 'k', long = "api-key", value_parser = parse_key_val, number_of_values = 1, value_name = "EMAIL=API_KEY")]
+    kv: Vec<(String, String)>,
 }
 
+fn parse_key_val(s: &str) -> Result<(String, String), String> {
+    let pos = s.find('=').ok_or_else(|| format!("invalid user=KEY: no `=` found in `{s}`"))?;
+    let key = s[..pos].parse::<String>().map_err(|e| format!("invalid key: {e}"))?.trim().to_lowercase();
+    // Quick check is email
+    if !key.contains('@') {
+        return Err(format!("invalid key: `{key}` is not an email"));
+    }
+    let value: String = s[pos + 1..].parse().map_err(|e| format!("invalid value: {e}"))?;
+    // Check is hash size
+    if value.len() != 64 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(format!("invalid value: `{value}` is not a sha256 hash"));
+    }
+    Ok((key, value))
+}
+
+
 /// Handle a single HTTP request
-fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[String]) -> Result<(), Error> {
+fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[(String, String)]) -> Result<(), Error> {
     // Extract parameters
     let mut to = None;
     let mut from = None;
@@ -31,7 +47,7 @@ fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[String]) 
     for header in headers {
         match header.field.as_str().to_ascii_lowercase().as_str() {
             "to" => to = Some(header.value.to_string()),
-            "from" => from = Some(header.value.to_string()),
+            "from" => from = Some(header.value.to_ascii_lowercase().to_string()),
             "subject" => subject = Some(header.value.to_string()),
             "reply-to" => reply_to = Some(header.value.to_string()),
             "api-key" => api_key = Some(header.value.to_string()),
@@ -43,11 +59,15 @@ fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[String]) 
     match api_key {
         Some(api_key) => {
             let mut hasher = Sha256::new();
-            hasher.update(api_key);
+            hasher.update(&api_key);
             let hashed_api_key = hasher.finalize();
-            let hashed_api_key = format!("{:x}", hashed_api_key);
-            if !hashed_api_keys.contains(&hashed_api_key) {
-                return Err(Error::Unauthorized(hashed_api_key));
+            let hashed_api_key = format!("{hashed_api_key:x}");
+            let from = from.as_ref().map(|f| f.to_ascii_lowercase()).unwrap_or_default();
+            for (user, hashed_key) in hashed_api_keys {
+                if user == &from
+                    && !hashed_api_key.contains(hashed_key) {
+                        return Err(Error::Unauthorized(hashed_api_key));
+                    }
             }
         }
         None => return Err(Error::MissingApiKey),
@@ -91,12 +111,6 @@ fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[String]) 
 fn main() {
     // Read cli arguments
     let cli = Cli::parse();
-    let hashed_api_keys = cli.api_key.as_slice();
-    for hashed_api_key in hashed_api_keys {
-        if hashed_api_key.len() != 64 {
-            eprintln!("WARNING: Invalid api key {hashed_api_key:?} (size should be 64)");
-        }
-    }
 
     // Boot server
     let server = Server::http(cli.addr.clone()).expect("Failed to launch server");
@@ -128,7 +142,7 @@ fn main() {
         }
 
         // Handle requests
-        let res = match handle_request(request.headers(), body, hashed_api_keys) {
+        let res = match handle_request(request.headers(), body, &cli.kv) {
             Ok(_) => request.respond(Response::new_empty(StatusCode(200))),
             Err(e) => {
                 if e.status_code() != 401 {
@@ -138,7 +152,7 @@ fn main() {
             },
         };
         if let Err(e) = res {
-            eprintln!("ERROR: Failed to respond {}", e);
+            eprintln!("ERROR: Failed to respond {e}");
         }
     }
 }

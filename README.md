@@ -13,12 +13,11 @@ USAGE:
     http-mailer [OPTIONS]
 
 OPTIONS:
-    -a, --addr <ADDR>          Address to listen on [default: localhost:8000]
-    -h, --help                 Print help information
-    -k, --api-key <API_KEY>    Hashed api key (with sha256)
-    -V, --version              Print version information
+    -a, --addr <ADDR>              Address to listen on [default: localhost:8000]
+    -k, --api-key <EMAIL=API_KEY>  Api keys in the form EMAIL=API_KEY where API_KEY is a sha256 hash
+    -h, --help                     Print help
+    -V, --version                  Print version
 ```
-
 ## HTTP example
 
 ```http
