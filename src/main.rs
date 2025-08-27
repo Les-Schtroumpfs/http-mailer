@@ -63,11 +63,19 @@ fn handle_request(headers: &[Header], body: String, hashed_api_keys: &[(String, 
             let hashed_api_key = hasher.finalize();
             let hashed_api_key = format!("{hashed_api_key:x}");
             let from = from.as_ref().map(|f| f.to_ascii_lowercase()).unwrap_or_default();
+            let mut authorized = false;
             for (user, hashed_key) in hashed_api_keys {
-                if user == &from
-                    && !hashed_api_key.contains(hashed_key) {
+                if user == &from {
+                    if !hashed_api_key.contains(hashed_key) {
                         return Err(Error::Unauthorized(hashed_api_key));
+                    } else {
+                        authorized = true;
+                        break;
                     }
+                }
+            }
+            if !authorized {
+                return Err(Error::Unauthorized(hashed_api_key));
             }
         }
         None => return Err(Error::MissingApiKey),
